@@ -246,26 +246,13 @@ def main_processor(model, park_id):
 
 
 def display_manager(park_id):
-    if park_id == 1:
-        cap = cv2.VideoCapture('data/test.mp4')
-    elif park_id == 2:
-        cap = cv2.VideoCapture('data/test2.mp4')
-    elif park_id == 3:
-        cap = cv2.VideoCapture('data/test3.mp4')
-    elif park_id == 4:
-        cap = cv2.VideoCapture('data/test4.mp4')
+
+    cap = cv2.VideoCapture('data/test' + park_id + '.mp4')
 
     while(cap.isOpened()):
         ret, frame = cap.read()
     
-        if park_id == 1:
-            cv2.imwrite("park_moment1.jpg", frame) 
-        elif park_id == 2:
-            cv2.imwrite("park_moment2.jpg", frame) 
-        elif park_id == 3:
-            cv2.imwrite("park_moment3.jpg", frame) 
-        elif park_id == 4:
-            cv2.imwrite("park_moment4.jpg", frame) 
+        cv2.imwrite("data/park_moment" + park_id + ".jpg", frame) 
             
         frame = main_processor(model, park_id)
         #if image is gray
@@ -284,8 +271,6 @@ def display_manager(park_id):
 
 checkpoint_path = 'model/resnet50-transfer-4.pth'
 train_on_gpu = cuda.is_available()  
-
-
 
 overall_start = timer()
 model, optimizer = load_checkpoint(path=checkpoint_path)
