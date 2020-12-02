@@ -22,7 +22,6 @@ from PIL import Image
 from torchsummary import summary
 # Timing utility
 from timeit import default_timer as timer
-import os
 import xml.etree.ElementTree as ET 
 import cv2
 
@@ -173,7 +172,11 @@ def load_checkpoint(path):
     model_name = 'resnet50'
 
     # Load in checkpoint
-    checkpoint = torch.load(path)
+    
+    if torch.cuda.is_available():
+        checkpoint = torch.load(path)
+    else:
+        checkpoint = torch.load(path, map_location=torch.device('cpu'))
 
 
     if model_name == 'resnet50':
@@ -232,7 +235,7 @@ def getReadLocationData(park_id):
 
 def main_processor(model, park_id):
     if park_id == 1:
-        img = cv2.imread("data/test_Moment.jpg")
+        img = cv2.imread("data/park_moment1.jpg")
     park_dict = getReadLocationData(park_id)
     for i in range(1, len(park_dict)):
         coordinates = park_dict[str(i)]
@@ -242,20 +245,56 @@ def main_processor(model, park_id):
         print("Box" + str(i) + " is: " + top_classes[0])
 
 
+def display_manager(park_id):
+    if park_id == 1:
+        cap = cv2.VideoCapture('data/test.mp4')
+    elif park_id == 2:
+        cap = cv2.VideoCapture('data/test2.mp4')
+    elif park_id == 3:
+        cap = cv2.VideoCapture('data/test3.mp4')
+    elif park_id == 4:
+        cap = cv2.VideoCapture('data/test4.mp4')
+
+    while(cap.isOpened()):
+        ret, frame = cap.read()
+    
+        if park_id == 1:
+            cv2.imwrite("park_moment1.jpg", frame) 
+        elif park_id == 2:
+            cv2.imwrite("park_moment2.jpg", frame) 
+        elif park_id == 3:
+            cv2.imwrite("park_moment3.jpg", frame) 
+        elif park_id == 4:
+            cv2.imwrite("park_moment4.jpg", frame) 
+            
+        frame = main_processor(model, park_id)
+        #if image is gray
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        cv2.imshow('frame', gray)
+        
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        
+        cv2.waitKey(500)
+    
+    cap.release()
+    cv2.destroyAllWindows()
+
+'''Main method'''
 
 checkpoint_path = 'model/resnet50-transfer-4.pth'
 train_on_gpu = cuda.is_available()  
 
+
+
 overall_start = timer()
 model, optimizer = load_checkpoint(path=checkpoint_path)
-
-
-
 print(train_on_gpu)
 
+main_processor(model, 1)
 total_time = timer() - overall_start
 print(f'{total_time:.2f} total seconds elapsed. ')
 
-main_processor(model, 1)
+
 
 
