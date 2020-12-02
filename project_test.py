@@ -245,8 +245,8 @@ def main_processor(model, park_id):
 
 
 file_path = "C:\\Users\\AEGEAN\\Desktop\\Projects\\parking_lot_detection_deep_learning"
-test_path_em = "dataset\\test2\\Empty"
-test_path_occu = "dataset\\test2\\Occupied"
+test_path_em = "C:\\Users\\AEGEAN\\Desktop\\Projects\\parking_lot_detection_deep_learning\\dataset\\test2\\Empty"
+test_path_occu = "C:\\Users\\AEGEAN\\Desktop\\Projects\\parking_lot_detection_deep_learning\\dataset\\test2\\Occupied"
 checkpoint_path = 'model\\resnet50-transfer-4.pth'
 train_on_gpu = cuda.is_available()  
 
