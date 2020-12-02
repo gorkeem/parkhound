@@ -244,8 +244,9 @@ def main_processor(model, park_id):
         print("Box" + str(i) + " is: " + top_classes[0])
 
 
-test_path_em = "C:\\Users\\AEGEAN\\Desktop\\Projects\\parking_lot_detection_deep_learning\\dataset\\test2\\Empty"
-test_path_occu = "C:\\Users\\AEGEAN\\Desktop\\Projects\\parking_lot_detection_deep_learning\\dataset\\test2\\Occupied"
+file_path = "C:\\Users\\AEGEAN\\Desktop\\Projects\\parking_lot_detection_deep_learning"
+test_path_em = "dataset\\test2\\Empty"
+test_path_occu = "dataset\\test2\\Occupied"
 checkpoint_path = 'model\\resnet50-transfer-4.pth'
 train_on_gpu = cuda.is_available()  
 
@@ -288,7 +289,7 @@ total_time = timer() - overall_start
 print(f'{total_time:.2f} total seconds elapsed. ')
 
 
-os.chdir("C:\\Users\\AEGEAN\\Desktop\\Projects\\parking_lot_detection_deep_learning")
+os.chdir(file_path)
 main_processor(model, 1)
 
 
