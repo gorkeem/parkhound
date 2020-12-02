@@ -72,7 +72,7 @@ def predict(image_path, model, topk=2):
     Returns
 
     """
-    real_class = image_path.split('\\')[-2]
+    real_class = image_path.split('/')[-2]
 
     # Convert to pytorch tensor
     img_tensor = process_image(image_path)
@@ -211,7 +211,7 @@ def load_checkpoint(path):
 def getReadLocationData(park_id):
     park_dict = {"0" : [1, 2, 3, 4]}
     if park_id == 1:
-        tree = ET.parse('data\\test_Moment.xml') 
+        tree = ET.parse('data/test_Moment.xml') 
         root = tree.getroot() 
       
     box_count = 0
@@ -232,10 +232,8 @@ def getReadLocationData(park_id):
 
 def main_processor(model, park_id):
     if park_id == 1:
-        img = cv2.imread("data\\test_Moment.png")
+        img = cv2.imread("data/test_Moment.jpg")
     park_dict = getReadLocationData(park_id)
-    total = len(park_dict) - 1
-    true_positive = 0
     for i in range(1, len(park_dict)):
         coordinates = park_dict[str(i)]
         image = img[int(coordinates[1]):int(coordinates[3]), int(coordinates[0]):int(coordinates[2])]
@@ -244,52 +242,20 @@ def main_processor(model, park_id):
         print("Box" + str(i) + " is: " + top_classes[0])
 
 
-file_path = "C:\\Users\\AEGEAN\\Desktop\\Projects\\parking_lot_detection_deep_learning"
-test_path_em = "C:\\Users\\AEGEAN\\Desktop\\Projects\\parking_lot_detection_deep_learning\\dataset\\test2\\Empty"
-test_path_occu = "C:\\Users\\AEGEAN\\Desktop\\Projects\\parking_lot_detection_deep_learning\\dataset\\test2\\Occupied"
-checkpoint_path = 'model\\resnet50-transfer-4.pth'
+
+checkpoint_path = 'model/resnet50-transfer-4.pth'
 train_on_gpu = cuda.is_available()  
 
 overall_start = timer()
 model, optimizer = load_checkpoint(path=checkpoint_path)
 
-os.chdir(test_path_em)
-empties = os.listdir()
-os.chdir(test_path_occu)
-occu = os.listdir()
 
 
 print(train_on_gpu)
-accuracy = 0
 
-'''
-for i in range(len(empties)):
-    img, top_p, top_classes, real_class = predict(test_path_em + "\\"  + empties[i], model)
-    print("Top p is: "+ str(top_p))
-    print("Top classes are: " + str(top_classes[0]))
-    print("Real class: "+ str(real_class))
-    if top_classes[0] == real_class:
-        accuracy = accuracy + 1
-    
-for i in range(len(occu)):
-    img, top_p, top_classes, real_class = predict(test_path_occu + "\\"  + occu[i], model)
-    print("Top p is: "+ str(top_p))
-    print("Top classes are: " + str(top_classes[0]))
-    print("Real class: "+ str(real_class))
-    if top_classes[0] == real_class:
-        accuracy = accuracy + 1
-'''
-
-total_test  = len(empties) + len(occu)
-accuracy = accuracy / total_test
-print("Result is: ")
-print("Number of test cases are: " + str(total_test))
-print("Accuracy is: " + str(accuracy * 100) + "%")
 total_time = timer() - overall_start
 print(f'{total_time:.2f} total seconds elapsed. ')
 
-
-os.chdir(file_path)
 main_processor(model, 1)
 
 
