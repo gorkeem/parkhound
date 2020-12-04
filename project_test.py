@@ -24,6 +24,7 @@ from torchsummary import summary
 from timeit import default_timer as timer
 import xml.etree.ElementTree as ET 
 import cv2
+import time
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
@@ -214,7 +215,7 @@ def load_checkpoint(path):
 def getReadLocationData(park_id):
     park_dict = {"0" : [1, 2, 3, 4]}
     if park_id == 1:
-        tree = ET.parse('data/test_Moment.xml') 
+        tree = ET.parse('data/testMoment1.xml') 
         root = tree.getroot() 
       
     box_count = 0
@@ -231,38 +232,130 @@ def getReadLocationData(park_id):
                     park_dict[str(box_count)] = [xmin, ymin, xmax, ymax]
     
     print("Number of boxes are: " + str(box_count))
-    return park_dict
+    return park_dict, box_count
 
-def main_processor(model, park_id):
-    if park_id == 1:
-        img = cv2.imread("data/park_moment1.jpg")
-    park_dict = getReadLocationData(park_id)
+def main_processor(model, frame, frame_counter, park_id):
+    park_dict, box_count = getReadLocationData(park_id)
+    results = []
     for i in range(1, len(park_dict)):
         coordinates = park_dict[str(i)]
-        image = img[int(coordinates[1]):int(coordinates[3]), int(coordinates[0]):int(coordinates[2])]
+        coordinates = park_dict[str(i)]
+        image = frame[int(coordinates[1]):int(coordinates[3]), int(coordinates[0]):int(coordinates[2])]
+        cv2.imwrite("frame/" + str(frame_counter) + "_" + str(i) + ".jpg", image)
         image = Image.fromarray(image)
         image, top_p, top_classes = predict_image(image, model)
-        print("Box" + str(i) + " is: " + top_classes[0])
+        #print("Box" + str(i) + " is: " + top_classes[0])
+        results.append(top_classes[0])
+    return box_count, results
 
 
-def display_manager(park_id):
+def returnBoxes(model, park_id):
+    park_dict, box_count = getReadLocationData(park_id)
+    box = []
+    for i in range(1, len(park_dict)):
+        box.append(park_dict[str(i)])
+    return park_dict
 
-    cap = cv2.VideoCapture('data/test' + park_id + '.mp4')
+def apply_to_frame(frame, park_dict):
+    for i in range(1, len(park_dict)):
+        coordinates = park_dict[str(i)]
+        color = (0, 0, 255) 
+        thickness = 1
+        start_point = (int(coordinates[0]), int(coordinates[1]))
+        end_point = (int(coordinates[2]), int(coordinates[3]))
+        frame = cv2.rectangle(frame, start_point, end_point, color, thickness) 
+    return frame
 
-    while(cap.isOpened()):
-        ret, frame = cap.read()
+def display_manager(model, park_id):
+
+    cap = cv2.VideoCapture('data/test' + str(park_id) + '.mp4')
     
-        cv2.imwrite("data/park_moment" + park_id + ".jpg", frame) 
-            
-        frame = main_processor(model, park_id)
-        #if image is gray
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        cv2.imshow('frame', gray)
+    park_dict = returnBoxes(model, park_id)
+    
+    
+    overall_start = timer()
+    ret, frame = cap.read()
+    length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    frame_counter = 0
+    print("Number of frames are: " + str(length))
+    frame_time = timer()
+    process_number = 0
+    works = True
+    while(cap.isOpened()):
         
+        ret, frame = cap.read()
+        frame_counter = frame_counter + 1
+        
+        total_duration = timer() - overall_start
+        #frame = apply_to_frame(frame, park_dict)
+        
+        text = "Frame is: " + str(frame_counter)
+          
+        # font 
+        font = cv2.FONT_HERSHEY_SIMPLEX 
+          
+        # org 
+        org = (00, 50) 
+          
+        # fontScale 
+        fontScale = 0.6
+           
+        # Red color in BGR 
+        color = (0, 0, 255) 
+          
+        # Line thickness of 2 px 
+        thickness = 1
+           
+        # Using cv2.putText() method 
+        frame = cv2.putText(frame, text, org, font, fontScale,  
+                         color, thickness, cv2.LINE_AA, False) 
+  
+        
+        if (timer() - frame_time) > 2.5 and works:
+            text2 = "Processed Frame is: " + str(frame_counter)
+            org2 = (00, 100)
+            frame = cv2.putText(frame, text2, org2, font, fontScale,  
+                         color, thickness, cv2.LINE_AA, False) 
+            frame2 = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            print("Duration: " + str(total_duration))
+            print("Process number is: " + str(process_number))
+            print("Frame Count is: " + str(frame_counter))
+            box_count, results = main_processor(model, frame2, frame_counter, park_id)
+            result = ""
+            for i in range(box_count):
+                result = result + str(i + 1) + " : " + str(results[i]) + ", "
+            
+            fontScale = 0.4
+            org4 = (00, 400)
+            frame = cv2.putText(frame, result, org4, font, fontScale,  
+                         color, thickness, cv2.LINE_AA, False) 
+            
+            cv2.imwrite("processed/" + str(frame_counter) + ".jpg", frame)
+            
+            cv2.imshow('Frame', frame)
+            #print(filled_matrix)
+            cv2.waitKey(5000)
+            process_number = process_number + 1
+            frame_time = timer()
+            if process_number == 4:
+                works = True
+            
+        
+        cv2.waitKey(100)
+        
+        if frame_counter == length:
+            print("Final frame " + str(frame_counter))
+            break
+        else:
+            cv2.imshow('Frame', frame)
+    
+        #cv2.imwrite("data/park_moment" + str(park_id) + ".jpg", frame) 
+        '''
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
+        '''
+            
         
-        cv2.waitKey(500)
     
     cap.release()
     cv2.destroyAllWindows()
@@ -272,13 +365,11 @@ def display_manager(park_id):
 checkpoint_path = 'model/resnet50-transfer-4.pth'
 train_on_gpu = cuda.is_available()  
 
-overall_start = timer()
+
 model, optimizer = load_checkpoint(path=checkpoint_path)
 print(train_on_gpu)
 
-main_processor(model, 1)
-total_time = timer() - overall_start
-print(f'{total_time:.2f} total seconds elapsed. ')
+display_manager(model, 1)
 
 
 
