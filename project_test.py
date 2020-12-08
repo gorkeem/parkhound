@@ -25,6 +25,7 @@ from timeit import default_timer as timer
 import xml.etree.ElementTree as ET 
 import cv2
 import time
+from multiprocessing import Process
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
@@ -214,9 +215,8 @@ def load_checkpoint(path):
 
 def getReadLocationData(park_id):
     park_dict = {"0" : [1, 2, 3, 4]}
-    if park_id == 1:
-        tree = ET.parse('data/testMoment1.xml') 
-        root = tree.getroot() 
+    tree = ET.parse('data/testmoment'+ str(park_id) + '.xml') 
+    root = tree.getroot() 
       
     box_count = 0
     for child in root:
@@ -249,6 +249,11 @@ def main_processor(model, frame, frame_counter, park_id):
     return box_count, results
 
 
+def send_data(zone1, park_id):
+    f = open("send_data/" + str(park_id) +  ".txt", "w")
+    f.write(str(zone1))
+    f.close()
+
 def returnBoxes(model, park_id):
     park_dict, box_count = getReadLocationData(park_id)
     box = []
@@ -256,22 +261,28 @@ def returnBoxes(model, park_id):
         box.append(park_dict[str(i)])
     return park_dict
 
-def apply_to_frame(frame, park_dict):
+def apply_to_frame(frame, results, park_dict):
     for i in range(1, len(park_dict)):
         coordinates = park_dict[str(i)]
-        color = (0, 0, 255) 
-        thickness = 1
+        if results[i - 1] == "Occupied":
+            color = (0, 0, 255) 
+        else:
+            color = (0, 255, 0) 
+        thickness = 2
         start_point = (int(coordinates[0]), int(coordinates[1]))
         end_point = (int(coordinates[2]), int(coordinates[3]))
         frame = cv2.rectangle(frame, start_point, end_point, color, thickness) 
-    return frame
+    return frame    
 
-def display_manager(model, park_id):
+def display_manager(park_id):
+    
+    park_id = int(park_id)
 
     cap = cv2.VideoCapture('data/test' + str(park_id) + '.mp4')
     
     park_dict = returnBoxes(model, park_id)
     
+    zone1 = []    
     
     overall_start = timer()
     ret, frame = cap.read()
@@ -286,11 +297,12 @@ def display_manager(model, park_id):
         ret, frame = cap.read()
         frame_counter = frame_counter + 1
         
+        temp = frame.copy()
         total_duration = timer() - overall_start
-        #frame = apply_to_frame(frame, park_dict)
+        
         
         text = "Frame is: " + str(frame_counter)
-          
+        
         # font 
         font = cv2.FONT_HERSHEY_SIMPLEX 
           
@@ -311,28 +323,48 @@ def display_manager(model, park_id):
                          color, thickness, cv2.LINE_AA, False) 
   
         
-        if (timer() - frame_time) > 2.5 and works:
+        if (timer() - frame_time) > 5 and works:
             text2 = "Processed Frame is: " + str(frame_counter)
             org2 = (00, 100)
             frame = cv2.putText(frame, text2, org2, font, fontScale,  
                          color, thickness, cv2.LINE_AA, False) 
-            frame2 = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            
+            temp = cv2.cvtColor(temp, cv2.COLOR_BGR2RGB)
             print("Duration: " + str(total_duration))
             print("Process number is: " + str(process_number))
             print("Frame Count is: " + str(frame_counter))
-            box_count, results = main_processor(model, frame2, frame_counter, park_id)
-            result = ""
+            box_count, results = main_processor(model, temp, frame_counter, park_id)
+            frame = apply_to_frame(frame, results, park_dict)
             for i in range(box_count):
-                result = result + str(i + 1) + " : " + str(results[i]) + ", "
-            
-            fontScale = 0.4
-            org4 = (00, 400)
-            frame = cv2.putText(frame, result, org4, font, fontScale,  
-                         color, thickness, cv2.LINE_AA, False) 
+                if i < 13:
+                    if results[i] == "Occupied":
+                        zone1.append((1, 1, 1, 1, i))
+                    else:
+                        zone1.append((1, 1, 2, 0, i))
+                elif i < 26:
+                    if results[i] == "Occupied":
+                        zone1.append((1, 2, 1, 1, i))
+                    else:
+                        zone1.append((1, 2, 2, 0, i))
+                elif i < 38:
+                    if results[i] == "Occupied":
+                        zone1.append((2, 1, 1, 1, i))
+                    else:
+                        zone1.append((2, 1, 2, 0, i))
+                elif i < box_count:
+                    if results[i] == "Occupied":
+                        zone1.append((2, 2, 1, 1, i))
+                    else:
+                        zone1.append((2, 2, 2, 0, i))   
+             
+                        
+            #send request
+            send_data(zone1, park_id)
+            zone1 = []                    
             
             cv2.imwrite("processed/" + str(frame_counter) + ".jpg", frame)
-            
-            cv2.imshow('Frame', frame)
+        
+            #cv2.imshow('Frame', frame)
             #print(filled_matrix)
             cv2.waitKey(5000)
             process_number = process_number + 1
@@ -347,16 +379,15 @@ def display_manager(model, park_id):
             print("Final frame " + str(frame_counter))
             break
         else:
-            cv2.imshow('Frame', frame)
+            print("Frame id is: "+ str(park_id))
+            #cv2.imshow('Frame', frame)
     
         #cv2.imwrite("data/park_moment" + str(park_id) + ".jpg", frame) 
-        '''
+
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-        '''
-            
-        
     
+            
     cap.release()
     cv2.destroyAllWindows()
 
@@ -365,11 +396,16 @@ def display_manager(model, park_id):
 checkpoint_path = 'model/resnet50-transfer-4.pth'
 train_on_gpu = cuda.is_available()  
 
-
 model, optimizer = load_checkpoint(path=checkpoint_path)
 print(train_on_gpu)
 
-display_manager(model, 1)
+if __name__ == '__main__':
+    process = []
+    for i in range(1, 5):
+        process.append(Process(target=display_manager, args=(str(i))))
+        process[i - 1].start()
+        #process[i - 1].join()
+
 
 
 
