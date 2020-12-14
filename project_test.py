@@ -239,7 +239,11 @@ def getReadLocationData(park_id):
                     line_count = line_count + 1
                     box_count = box_count + 1
                     park_dict[str(box_count)] = [xmin, ymin, xmax, ymax]
-              
+                    
+    coordinates = park_dict[str(box_count)]
+    end_coordinates = (coordinates[0], coordinates[1])
+    writer = (line_count, start_coordinates, end_coordinates)
+    lines.append(writer)
     
     print("Number of boxes are: " + str(box_count))
     return park_dict, box_count, lines
@@ -274,9 +278,9 @@ def main_processor_image(model, frame, park_id):
     return box_count, results
 
 
-def send_data(zone1, park_id):
-    f = open("send_data/" + str(park_id) +  ".txt", "w")
-    f.write(str(zone1))
+def send_data(park_structure, frame_counter , park_id):
+    f = open("send_data/" + str(frame_counter) + ".txt", "w")
+    f.write(str(park_structure))
     f.close()
 
 def returnBoxes(model, park_id):
@@ -286,37 +290,53 @@ def returnBoxes(model, park_id):
         box.append(park_dict[str(i)])
     return park_dict, lines
 
-def apply_to_frame(frame, park_structure, car_count, results, park_dict):
+def apply_to_frame(frame, frame_counter, park_structure, park_id, car_count, results, park_dict):
     line_count = 0
-    cars_inline = 0
-    print(len(park_dict))
-    print(len(car_count))
+    counter = 0
+    print("Car data : " + str(len(car_count))) 
     for i in range(1, len(park_dict)):
-        cars_inline = cars_inline + 1
+        counter = counter + 1
         coordinates = park_dict[str(i)]
-        if results[i - 1] == "Occupied":
-            if car_count[line_count] < i:
-                park_structure[line_count][cars_inline] = 1
+        color = (0, 0, 255) 
+        if car_count[line_count] > counter:
+            if results[i - 1] == "Occupied":
+                park_structure[line_count,counter - 1] = 1
+                color = (0, 0, 255) 
             else:
-                line_count = line_count + 1
-            color = (0, 0, 255) 
-        else:
-            if car_count[line_count] < i:
-                park_structure[line_count][cars_inline] = 0
+                park_structure[line_count,counter - 1] = 0
+                color = (0, 255, 0) 
+            #print(str(counter) + " - ")
+            park_structure[line_count][counter] = 1
+            
+        elif car_count[line_count] == counter:
+            if results[i - 1] == "Occupied":
+                park_structure[line_count, counter - 1] = 1
+                color = (0, 0, 255) 
             else:
-                line_count = line_count + 1
-            color = (0, 255, 0) 
+                park_structure[line_count, counter - 1] = 0
+                color = (0, 255, 0) 
+            #print(str(counter))
+            #print("Line count is: " + str(line_count) + " Size is: " + str(car_count[line_count]))
+            #print("\n")
+            line_count = line_count + 1
+            counter = 0
         thickness = 2
         start_point = (int(coordinates[0]), int(coordinates[1]))
         end_point = (int(coordinates[2]), int(coordinates[3]))
         frame = cv2.rectangle(frame, start_point, end_point, color, thickness) 
-    f = open("result.txt", "w")
-    f.write(str(park_structure))
-    f.close()
+    
+    send_data(park_structure, frame_counter, park_id)
+
     return frame    
 
+def obtain_new_park_structure(structure, car_count, max_cars):
+    park_structure = np.zeros([len(structure), max_cars])
+    for i in range(len(structure)):
+        for j in range(car_count[i], max_cars):
+            park_structure[i, j] = -9
+    return park_structure
+
 def create_structure(park_height, park_width, lines):
-    print("Frame Dimesions: Height: " + str(park_height) + " Width: " + str(park_width))
     cars_lines = []
     car_count = []
     max_cars = 0
@@ -325,14 +345,14 @@ def create_structure(park_height, park_width, lines):
         number_of_cars_inline = park_line[0]
         if number_of_cars_inline > max_cars:
             max_cars = number_of_cars_inline
-        line_start_coordinates = park_line[1]
-        line_end_coordinates = park_line[2]
         distance = int(park_line[2][0]) - int(park_line[1][0])
         car_count.append(number_of_cars_inline)
         cars_lines.append((number_of_cars_inline, distance))
-        print("For Line " + str(i + 1))
-        print(str(number_of_cars_inline) + " cars in the " + str(distance) + " pixels area " + str(int(distance / int(number_of_cars_inline))) + " pixels are required per car.")
+        #print("For Line " + str(i + 1))
+        #print(str(number_of_cars_inline) + " cars in the " + str(distance) + " pixels area " + str(int(distance / int(number_of_cars_inline))) + " pixels are required per car.")
     return cars_lines, car_count, max_cars
+
+
 
 def display_manager(park_id):
     
@@ -346,9 +366,7 @@ def display_manager(park_id):
     ret, frame = cap.read()
     h, w, c = frame.shape
     structure, car_count, max_cars = create_structure(h, w, lines)
-    number_of_lines = len(structure) + 1
-    print(number_of_lines)
-    park_structure = np.zeros([number_of_lines, max_cars])
+    
     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     
     frame_counter = 1
@@ -358,7 +376,6 @@ def display_manager(park_id):
     print("Height: " + str(h) + " Width: " + str(w))
     frame_time = timer()
 
-    
     while(cap.isOpened()):
         
         try:
@@ -402,12 +419,13 @@ def display_manager(park_id):
             frame = cv2.putText(frame, text2, org2, font, fontScale,  
                          color, thickness, cv2.LINE_AA, False) 
             
+            park_structure = obtain_new_park_structure(structure, car_count,  max_cars)
             temp = cv2.cvtColor(temp, cv2.COLOR_BGR2RGB)
             print("Duration: " + str(total_duration))
             print("Frame Count is: " + str(frame_counter))
             calculation_time = timer()
             box_count, results = main_processor(model, temp, frame_counter, park_id)
-            frame = apply_to_frame(frame, park_structure, car_count, results, park_dict)
+            frame = apply_to_frame(frame, frame_counter, park_structure, park_id, car_count, results, park_dict)
 
             
             cv2.imwrite("processed/" + str(frame_counter) + ".jpg", frame)
