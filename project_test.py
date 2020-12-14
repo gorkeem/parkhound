@@ -1,31 +1,25 @@
-from IPython.core.interactiveshell import InteractiveShell
-import seaborn as sns
 # PyTorch
 from torchvision import transforms, datasets, models
 import torch
 from torch import optim, cuda
 from torch.utils.data import DataLoader, sampler
-import torch.nn as nn
-
 
 import warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
 
 # Data science tools
 import numpy as np
-import pandas as pd
 import os
 import matplotlib.pyplot as plt
 # Image manipulations
 from PIL import Image
 # Useful for examining network
-from torchsummary import summary
 # Timing utility
 from timeit import default_timer as timer
 import xml.etree.ElementTree as ET 
 import cv2
 import time
-from multiprocessing import Process
+import math
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
@@ -215,33 +209,64 @@ def load_checkpoint(path):
 
 def getReadLocationData(park_id):
     park_dict = {"0" : [1, 2, 3, 4]}
-    tree = ET.parse('data/testmoment'+ str(park_id) + '.xml') 
+    tree = ET.parse('data/park_structure/test'+ str(park_id) + '.xml') 
     root = tree.getroot() 
+    lines= []
       
     box_count = 0
+    line_count = 0
+    line_data = []
+    start_coordinates = ()
+    end_coordinates = ()
     for child in root:
         if str(child.tag) == "object":
-            box_count = box_count + 1
             for element in child:
+                if str(element.tag) == "line":
+                    if box_count != 0:
+                        coordinates = park_dict[str(box_count)]
+                        end_coordinates = (coordinates[0], coordinates[1])
+                        writer = (line_count, start_coordinates, end_coordinates)
+                        lines.append(writer)
+                        line_count = 0
                 if str(element.tag) == "bndbox":
                     #print("Box ID:" + str(box_count))
                     xmin = element.find("xmin").text
                     ymin = element.find("ymin").text
                     xmax = element.find("xmax").text
                     ymax = element.find("ymax").text
+                    if line_count == 0:
+                        start_coordinates = (xmin, ymin)
+                    line_count = line_count + 1
+                    box_count = box_count + 1
                     park_dict[str(box_count)] = [xmin, ymin, xmax, ymax]
+              
     
     print("Number of boxes are: " + str(box_count))
-    return park_dict, box_count
+    return park_dict, box_count, lines
 
 def main_processor(model, frame, frame_counter, park_id):
+    park_dict, box_count, lines = getReadLocationData(park_id)
+    results = []
+    for i in range(1, len(park_dict)):
+        coordinates = park_dict[str(i)]
+        image = frame[int(coordinates[1]):int(coordinates[3]), int(coordinates[0]):int(coordinates[2])]
+        #cv2.imwrite("frame/" + str(frame_counter) + "_" + str(i) + ".jpg", image)
+        image = Image.fromarray(image)
+        image, top_p, top_classes = predict_image(image, model)
+        #print("Box" + str(i) + " is: " + top_classes[0])
+        results.append(top_classes[0])
+    return box_count, results
+
+
+
+def main_processor_image(model, frame, park_id):
     park_dict, box_count = getReadLocationData(park_id)
     results = []
     for i in range(1, len(park_dict)):
         coordinates = park_dict[str(i)]
         coordinates = park_dict[str(i)]
         image = frame[int(coordinates[1]):int(coordinates[3]), int(coordinates[0]):int(coordinates[2])]
-        cv2.imwrite("frame/" + str(frame_counter) + "_" + str(i) + ".jpg", image)
+        #cv2.imwrite("frame/" + str(frame_counter) + "_" + str(i) + ".jpg", image)
         image = Image.fromarray(image)
         image, top_p, top_classes = predict_image(image, model)
         #print("Box" + str(i) + " is: " + top_classes[0])
@@ -255,11 +280,12 @@ def send_data(zone1, park_id):
     f.close()
 
 def returnBoxes(model, park_id):
-    park_dict, box_count = getReadLocationData(park_id)
+    park_dict, box_count, lines = getReadLocationData(park_id)
+    print(lines)
     box = []
     for i in range(1, len(park_dict)):
         box.append(park_dict[str(i)])
-    return park_dict
+    return park_dict, lines
 
 def apply_to_frame(frame, results, park_dict):
     for i in range(1, len(park_dict)):
@@ -274,28 +300,58 @@ def apply_to_frame(frame, results, park_dict):
         frame = cv2.rectangle(frame, start_point, end_point, color, thickness) 
     return frame    
 
+def create_structure(park_height, park_width, lines):
+    print("Frame Dimesions: Height: " + str(park_height) + " Width: " + str(park_width))
+    cars_lines = []
+    for i in range(len(lines)):
+        park_line = lines[i]
+        number_of_cars_inline = park_line[0]
+        line_start_coordinates = park_line[1]
+        line_end_coordinates = park_line[2]
+        distance = int(park_line[2][0]) - int(park_line[1][0])
+        cars_lines.append((number_of_cars_inline, distance))
+        print("For Line " + str(i + 1))
+        print(str(number_of_cars_inline) + " cars in the " + str(distance) + " pixels area " + str(int(distance / int(number_of_cars_inline))) + " pixels are required per car.")
+    return cars_lines
+
 def display_manager(park_id):
     
     park_id = int(park_id)
 
-    cap = cv2.VideoCapture('data/test' + str(park_id) + '.mp4')
+    cap = cv2.VideoCapture('data/videos/test' + str(park_id) + '.mp4')
     
-    park_dict = returnBoxes(model, park_id)
+    
+    park_dict, lines = returnBoxes(model, park_id)
+    
     
     zone1 = []    
     
     overall_start = timer()
     ret, frame = cap.read()
+    h, w, c = frame.shape
+    create_structure(h, w, lines)
     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    frame_counter = 0
+    
+    frame_counter = 1
+    if park_id == 10: 
+        length = length - 1
     print("Number of frames are: " + str(length))
+    print("Height: " + str(h) + " Width: " + str(w))
     frame_time = timer()
     process_number = 0
     works = True
+    
+    '''
     while(cap.isOpened()):
         
-        ret, frame = cap.read()
-        frame_counter = frame_counter + 1
+        try:
+            ret, frame = cap.read()
+        except:
+            print("Cannot read the frame")
+            break
+
+        if frame.all() == None:
+            break
         
         temp = frame.copy()
         total_duration = timer() - overall_start
@@ -323,7 +379,7 @@ def display_manager(park_id):
                          color, thickness, cv2.LINE_AA, False) 
   
         
-        if (timer() - frame_time) > 5 and works:
+        if (timer() - frame_time) > 10 and works:
             text2 = "Processed Frame is: " + str(frame_counter)
             org2 = (00, 100)
             frame = cv2.putText(frame, text2, org2, font, fontScale,  
@@ -333,36 +389,80 @@ def display_manager(park_id):
             print("Duration: " + str(total_duration))
             print("Process number is: " + str(process_number))
             print("Frame Count is: " + str(frame_counter))
+            calculation_time = timer()
             box_count, results = main_processor(model, temp, frame_counter, park_id)
             frame = apply_to_frame(frame, results, park_dict)
-            for i in range(box_count):
-                if i < 13:
-                    if results[i] == "Occupied":
-                        zone1.append((1, 1, 1, 1, i))
-                    else:
-                        zone1.append((1, 1, 2, 0, i))
-                elif i < 26:
-                    if results[i] == "Occupied":
-                        zone1.append((1, 2, 1, 1, i))
-                    else:
-                        zone1.append((1, 2, 2, 0, i))
-                elif i < 38:
-                    if results[i] == "Occupied":
-                        zone1.append((2, 1, 1, 1, i))
-                    else:
-                        zone1.append((2, 1, 2, 0, i))
-                elif i < box_count:
-                    if results[i] == "Occupied":
-                        zone1.append((2, 2, 1, 1, i))
-                    else:
-                        zone1.append((2, 2, 2, 0, i))   
+
+            
+            cv2.imwrite("processed/" + str(frame_counter) + ".jpg", frame)
+            
+            process = timer() - calculation_time
+            print("Processing Time: " + str(process))
+        
+            cv2.imshow('Frame', frame)
+            cv2.waitKey(3000)
+
+            
+            
+        cv2.waitKey(1200)
+        
+        if frame_counter == length:
+            print("Final frame " + str(frame_counter))
+            break
+        else:
+            print("Current frame is: "+ str(frame_counter))
+            cv2.imshow('Frame', frame)
+    
+        #cv2.imwrite("data/park_moment" + str(park_id) + ".jpg", frame) 
+        frame_counter = frame_counter + 1
+        
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    
+    '''
+    
+    total_duration = timer() - overall_start
+    print("Video Duration: " + str(total_duration))
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+def display_image(park_id):
+    
+    park_id = int(park_id)
+    
+    park_dict, lines = returnBoxes(model, park_id)
+    
+    zone1 = []   
+    
+    #frame = cv2.imread("data/test" + str(park_id) + ".jpg")
+    
+    frame = cv2.imread("data/images/test" + str(10) + ".jpg")
+    
+    overall_start = timer()
+    frame_time = timer()
+    process_number = 0
+    works = True
+    while(True):
+        
+        temp = frame.copy()
+        total_duration = timer() - overall_start
+          
+  
+        
+        if (timer() - frame_time) > 5 and works:
+            
+            temp = cv2.cvtColor(temp, cv2.COLOR_BGR2RGB)
+            print("Duration: " + str(total_duration))
+            print("Process number is: " + str(process_number))
+            box_count, results = main_processor_image(model, temp, park_id)
+            frame = apply_to_frame(frame, results, park_dict)
              
                         
             #send request
             send_data(zone1, park_id)
             zone1 = []                    
-            
-            cv2.imwrite("processed/" + str(frame_counter) + ".jpg", frame)
+        
         
             cv2.imshow('Frame', frame)
             #print(filled_matrix)
@@ -372,24 +472,17 @@ def display_manager(park_id):
             if process_number == 4:
                 works = True
             
-        
-        cv2.waitKey(100)
-        
-        if frame_counter == length:
-            print("Final frame " + str(frame_counter))
-            break
-        else:
-            #print("Frame id is: "+ str(park_id))
-            cv2.imshow('Frame', frame)
-    
-        #cv2.imwrite("data/park_moment" + str(park_id) + ".jpg", frame) 
-
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     
+        
+        cv2.waitKey(100)
+    
             
-    cap.release()
     cv2.destroyAllWindows()
+
+
+
 
 '''Main method'''
 
@@ -408,7 +501,8 @@ if __name__ == '__main__':
         #process[i - 1].join()
 
 '''
-display_manager(8)
+display_manager(10)
+#display_image(11)
 
 
 
