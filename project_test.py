@@ -364,7 +364,7 @@ def display_manager(park_id):
             
             cv2.imwrite("processed/" + str(frame_counter) + ".jpg", frame)
         
-            #cv2.imshow('Frame', frame)
+            cv2.imshow('Frame', frame)
             #print(filled_matrix)
             cv2.waitKey(5000)
             process_number = process_number + 1
@@ -379,8 +379,8 @@ def display_manager(park_id):
             print("Final frame " + str(frame_counter))
             break
         else:
-            print("Frame id is: "+ str(park_id))
-            #cv2.imshow('Frame', frame)
+            #print("Frame id is: "+ str(park_id))
+            cv2.imshow('Frame', frame)
     
         #cv2.imwrite("data/park_moment" + str(park_id) + ".jpg", frame) 
 
@@ -399,14 +399,16 @@ train_on_gpu = cuda.is_available()
 model, optimizer = load_checkpoint(path=checkpoint_path)
 print(train_on_gpu)
 
+'''
 if __name__ == '__main__':
     process = []
-    for i in range(1, 5):
-        process.append(Process(target=display_manager, args=(str(i))))
-        process[i - 1].start()
+    #for i in range(1, 2):
+    process.append(Process(target=display_manager, args=(str(8))))
+    #process[i - 1].start()
         #process[i - 1].join()
 
-
+'''
+display_manager(8)
 
 
 
