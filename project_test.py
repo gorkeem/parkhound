@@ -430,7 +430,7 @@ def display_manager(park_id):
             process = timer() - calculation_time
             print("Processing Time: " + str(process))
         
-            cv2.imshow('Frame', frame)
+            #cv2.imshow('Frame', frame)
             cv2.waitKey(3000)
 
             
@@ -442,7 +442,7 @@ def display_manager(park_id):
             break
         else:
             print("Current frame is: "+ str(frame_counter))
-            cv2.imshow('Frame', frame)
+            #cv2.imshow('Frame', frame)
     
         #cv2.imwrite("data/park_moment" + str(park_id) + ".jpg", frame) 
         frame_counter = frame_counter + 1
@@ -455,7 +455,7 @@ def display_manager(park_id):
     total_duration = timer() - overall_start
     print("Video Duration: " + str(total_duration))
     cap.release()
-    cv2.destroyAllWindows()
+    #cv2.destroyAllWindows()
     return park_structure
 
 def display_image(park_id):
@@ -495,7 +495,7 @@ def display_image(park_id):
             zone1 = []                    
         
         
-            cv2.imshow('Frame', frame)
+            #cv2.imshow('Frame', frame)
             #print(filled_matrix)
             cv2.waitKey(5000)
             process_number = process_number + 1
