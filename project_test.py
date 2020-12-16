@@ -1,7 +1,7 @@
 # PyTorch
 from torchvision import transforms, datasets, models
 import torch
-from torch import optim, cuda
+from torch import cuda
 from torch.utils.data import DataLoader, sampler
 
 import warnings
@@ -18,8 +18,6 @@ from PIL import Image
 from timeit import default_timer as timer
 import xml.etree.ElementTree as ET 
 import cv2
-import time
-import math
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
@@ -215,7 +213,6 @@ def getReadLocationData(park_id):
       
     box_count = 0
     line_count = 0
-    line_data = []
     start_coordinates = ()
     end_coordinates = ()
     for child in root:
