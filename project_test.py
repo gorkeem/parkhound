@@ -243,7 +243,7 @@ def getReadLocationData(park_id):
     writer = (line_count, start_coordinates, end_coordinates)
     lines.append(writer)
     
-    print("Number of boxes are: " + str(box_count))
+    #print("Number of boxes are: " + str(box_count))
     return park_dict, box_count, lines
 
 def main_processor(model, frame, frame_counter, park_id):
@@ -419,7 +419,7 @@ def display_manager(park_id):
             
             park_structure = obtain_new_park_structure(structure, car_count,  max_cars)
             temp = cv2.cvtColor(temp, cv2.COLOR_BGR2RGB)
-            print("Duration: " + str(total_duration))
+            print("Video Duration so far: " + str(total_duration))
             print("Frame Count is: " + str(frame_counter))
             calculation_time = timer()
             box_count, results = main_processor(model, temp, frame_counter, park_id)
