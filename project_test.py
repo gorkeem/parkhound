@@ -18,6 +18,7 @@ from PIL import Image
 from timeit import default_timer as timer
 import xml.etree.ElementTree as ET 
 import cv2
+import time
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
@@ -443,8 +444,9 @@ def display_manager(park_id):
         else:
             print("Current frame is: "+ str(frame_counter))
             #cv2.imshow('Frame', frame)
-    
-        #cv2.imwrite("data/park_moment" + str(park_id) + ".jpg", frame) 
+        
+        #cv2.imwrite("data/park_moment" + str(park_id) + ".jpg", frame)
+        time.sleep(2)
         frame_counter = frame_counter + 1
         
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -478,8 +480,6 @@ def display_image(park_id):
         
         temp = frame.copy()
         total_duration = timer() - overall_start
-          
-  
         
         if (timer() - frame_time) > 5 and works:
             
@@ -488,7 +488,7 @@ def display_image(park_id):
             print("Process number is: " + str(process_number))
             box_count, results = main_processor_image(model, temp, park_id)
             frame = apply_to_frame(frame, results, park_dict)
-             
+            
                         
             #send request
             send_data(zone1, park_id)
@@ -506,6 +506,7 @@ def display_image(park_id):
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     
+        
         
         cv2.waitKey(100)
     
