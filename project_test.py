@@ -432,11 +432,12 @@ def display_manager(park_id):
             print("Processing Time: " + str(process))
         
             #cv2.imshow('Frame', frame)
-            cv2.waitKey(3000)
+            #cv2.waitKey(3000)
+            time.sleep(process)
 
             
             
-        cv2.waitKey(1200)
+        #cv2.waitKey(1200)
         
         if frame_counter == length:
             print("Final frame " + str(frame_counter))
