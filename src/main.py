@@ -312,11 +312,23 @@ def main_processor_image(model, frame, park_id):
     return box_count, results
 
 
-def send_data(park_structure, frame_counter , park_id, parking_line_count, total_lines, available_lines):
+def send_data(park_structure, frame_counter, park_id, parking_line_count, total_lines, available_lines):
     row, column = park_structure.shape
     f = open("send_data/" + str(frame_counter) + ".txt", "w")
-    f.write("parking_line_count: " + str(parking_line_count) + "\ntotal_line: " + str(total_lines) + "\navailable_lines:" + str(available_lines) + "\n")
-    f.write(str(park_structure))
+    new_row_size = row + len(available_lines)
+    print("New row size: " + str(new_row_size))
+    send_park_structure = np.zeros([new_row_size, column])
+    count = 0
+    for i in range(new_row_size):
+        if i % 3 == 0:
+            count = count + 1
+        for j in range(column):
+            if i % 3 == 0:
+                send_park_structure[i][j] = -9
+                
+            else:
+                send_park_structure[i][j] = park_structure[i - count][j]
+    f.write(str(send_park_structure))
     f.close()
 
 def returnBoxes(model, park_id):
