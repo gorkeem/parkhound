@@ -19,6 +19,7 @@ from timeit import default_timer as timer
 import xml.etree.ElementTree as ET 
 import cv2
 import time
+import concurrent.futures
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
@@ -246,10 +247,10 @@ def getReadLocationData(park_id):
     #print("Number of boxes are: " + str(box_count))
     return park_dict, box_count, lines
 
-def main_processor(model, frame, frame_counter, park_id):
-    park_dict, box_count, lines = getReadLocationData(park_id)
-    results = []
-    for i in range(1, len(park_dict)):
+def multi_process(input_th):
+    thread_id1, start_index, end_index, park_dict, frame, results = input_th
+    #print("Thread id: " + str(thread_id1) + " Start index: " + str(start_index) + " End index: " + str(end_index))
+    for i in range(start_index, end_index):
         coordinates = park_dict[str(i)]
         image = frame[int(coordinates[1]):int(coordinates[3]), int(coordinates[0]):int(coordinates[2])]
         #cv2.imwrite("frame/" + str(frame_counter) + "_" + str(i) + ".jpg", image)
@@ -257,8 +258,43 @@ def main_processor(model, frame, frame_counter, park_id):
         image, top_p, top_classes = predict_image(image, model)
         #print("Box" + str(i) + " is: " + top_classes[0])
         results.append(top_classes[0])
-    return box_count, results
+    return results
 
+def main_processor(model, frame, frame_counter, park_id):
+    park_dict, box_count, lines = getReadLocationData(park_id)
+    results1 = []
+    results2 = []
+    results3 = []
+    #divide to 3
+    length1 = int(len(park_dict) / 3)
+    length2 = int(len(park_dict) / 3)
+    a = 1, 1, length1, park_dict, frame, results1
+    b = 2, length1, length1 + length2, park_dict, frame, results2
+    c = 3, length1 + length2, len(park_dict), park_dict, frame, results3
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future = executor.submit(multi_process , a)
+        future2 = executor.submit(multi_process, b)
+        future3 = executor.submit(multi_process, c)
+        results1 = future.result()
+        results2 = future2.result()
+        results3 = future3.result()
+
+    
+    time.sleep(1)
+    results = []
+    #print("Length1 is: " + str(length1))
+    #print("length1 + length2 is: " + str(length1 + length2))
+    for i in range(len(results1)):
+        results.append(results1[i])
+    for i in range(len(results2)):
+        results.append(results2[i])
+    for i in range(len(results3)):
+        results.append(results3[i])
+        
+
+    print("Length of the results " + str(len(results)))
+    return results
 
 
 def main_processor_image(model, frame, park_id):
@@ -276,9 +312,10 @@ def main_processor_image(model, frame, park_id):
     return box_count, results
 
 
-def send_data(park_structure, frame_counter , park_id):
+def send_data(park_structure, frame_counter , park_id, parking_line_count, total_lines, available_lines):
     row, column = park_structure.shape
     f = open("send_data/" + str(frame_counter) + ".txt", "w")
+    f.write("parking_line_count: " + str(parking_line_count) + "\ntotal_line: " + str(total_lines) + "\navailable_lines:" + str(available_lines) + "\n")
     f.write(str(park_structure))
     f.close()
 
@@ -289,10 +326,10 @@ def returnBoxes(model, park_id):
         box.append(park_dict[str(i)])
     return park_dict, lines
 
-def apply_to_frame(frame, frame_counter, park_structure, park_id, car_count, results, park_dict):
+def apply_to_frame(frame, frame_counter, park_structure, park_id, car_count, results, park_dict, parking_line_count, total_lines, available_lines):
     line_count = 0
     counter = 0
-    print("Car data : " + str(len(car_count))) 
+    #print("Car data : " + str(len(car_count))) 
     for i in range(1, len(park_dict)):
         counter = counter + 1
         coordinates = park_dict[str(i)]
@@ -324,7 +361,7 @@ def apply_to_frame(frame, frame_counter, park_structure, park_id, car_count, res
         end_point = (int(coordinates[2]), int(coordinates[3]))
         frame = cv2.rectangle(frame, start_point, end_point, color, thickness) 
     
-    send_data(park_structure, frame_counter, park_id)
+    send_data(park_structure, frame_counter, park_id, parking_line_count, total_lines, available_lines)
 
     return frame    
 
@@ -339,6 +376,13 @@ def create_structure(park_height, park_width, lines):
     cars_lines = []
     car_count = []
     max_cars = 0
+    parking_line_count = len(lines)
+    total_lines = len(lines) + 1
+    available_lines = []
+    for i in range(total_lines + 1):
+        if i % 2 == 1:
+            available_lines.append(i)
+    
     for i in range(len(lines)):
         park_line = lines[i]
         number_of_cars_inline = park_line[0]
@@ -349,7 +393,7 @@ def create_structure(park_height, park_width, lines):
         cars_lines.append((number_of_cars_inline, distance))
         #print("For Line " + str(i + 1))
         #print(str(number_of_cars_inline) + " cars in the " + str(distance) + " pixels area " + str(int(distance / int(number_of_cars_inline))) + " pixels are required per car.")
-    return cars_lines, car_count, max_cars
+    return cars_lines, car_count, max_cars, parking_line_count, total_lines, available_lines
 
 
 
@@ -364,7 +408,7 @@ def display_manager(park_id):
     overall_start = timer()
     ret, frame = cap.read()
     h, w, c = frame.shape
-    structure, car_count, max_cars = create_structure(h, w, lines)
+    structure, car_count, max_cars, parking_line_count, total_lines, available_lines = create_structure(h, w, lines)
     
     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     
@@ -412,7 +456,7 @@ def display_manager(park_id):
                          color, thickness, cv2.LINE_AA, False) 
   
         
-        if (timer() - frame_time) > 10:
+        if (timer() - frame_time) > 30:
             text2 = "Processed Frame is: " + str(frame_counter)
             org2 = (00, 100)
             frame = cv2.putText(frame, text2, org2, font, fontScale,  
@@ -423,11 +467,15 @@ def display_manager(park_id):
             print("Video Duration so far: " + str(total_duration))
             print("Frame Count is: " + str(frame_counter))
             calculation_time = timer()
-            box_count, results = main_processor(model, temp, frame_counter, park_id)
-            frame = apply_to_frame(frame, frame_counter, park_structure, park_id, car_count, results, park_dict)
+            
+            results = main_processor(model, temp, frame_counter, park_id)
+            
+            
+            
+            frame = apply_to_frame(frame, frame_counter, park_structure, park_id, car_count, results, park_dict, parking_line_count, total_lines, available_lines)
 
             
-            #cv2.imwrite("processed/" + str(frame_counter) + ".jpg", frame)
+            cv2.imwrite("processed/" + str(frame_counter) + ".jpg", frame)
             
             process = timer() - calculation_time
             print("Processing Time: " + str(process))
