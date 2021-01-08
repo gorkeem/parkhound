@@ -3,7 +3,7 @@ from torchvision import transforms, datasets, models
 import torch
 from torch import cuda
 from torch.utils.data import DataLoader, sampler
-
+from db import db
 import warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
 
@@ -21,6 +21,7 @@ import cv2
 import time
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+parkhound_db = db();
 
 def process_image(image_path):
     """Process an image path into a PyTorch tensor"""
@@ -277,10 +278,12 @@ def main_processor_image(model, frame, park_id):
 
 
 def send_data(park_structure, frame_counter , park_id):
-    row, column = park_structure.shape
-    f = open("send_data/" + str(frame_counter) + ".txt", "w")
-    f.write(str(park_structure))
-    f.close()
+    parkhound_db.pingDB()
+    # row, column = park_structure.shape
+    # f = open("send_data/" + str(frame_counter) + ".txt", "w")
+    # f.write(str(park_structure))
+    # f.close()
+    return;
 
 def returnBoxes(model, park_id):
     park_dict, box_count, lines = getReadLocationData(park_id)
@@ -537,6 +540,3 @@ if __name__ == '__main__':
 '''
 park_structure = display_manager(10)
 #display_image(11)
-
-
-
