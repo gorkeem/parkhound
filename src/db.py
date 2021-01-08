@@ -1,14 +1,17 @@
 from gql import gql, Client
 from gql.transport.aiohttp import AIOHTTPTransport
 
+
 class db():
     def __init__(self):
-        self.transport = AIOHTTPTransport(url="http://localhost:8080/v1/graphql")
-        self.client = Client(transport=self.transport, fetch_schema_from_transport=True)
+        self.transport = AIOHTTPTransport(
+            url="http://localhost:8080/v1/graphql")
+        self.client = Client(transport=self.transport,
+                             fetch_schema_from_transport=True)
 
-    def pingDB(self):       
+    def pingDB(self):
         query = gql(
-        """
+            """
             query getParkingLots {
                 parking_lot{
                     id
@@ -20,5 +23,4 @@ class db():
         result = self.client.execute(query)
         print(result)
 
-    def createParkingLot(self, lot_shape):
-        
+    # def createParkingLot(self, lot_shape):
