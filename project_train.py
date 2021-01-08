@@ -375,8 +375,11 @@ for param in model.parameters():
 
 n_inputs = model.fc.in_features
 model.fc = nn.Sequential(
-    nn.Linear(n_inputs, 256), nn.ReLU(), nn.Dropout(0.2),
-    nn.Linear(256, 2), nn.LogSoftmax(dim=1))
+    nn.Linear(n_inputs, 256), 
+    nn.ReLU(), 
+    nn.Dropout(0.2),
+    nn.Linear(256, 2), 
+    nn.LogSoftmax(dim=1))
 
 if train_on_gpu:
     model = model.to('cuda')
