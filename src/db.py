@@ -74,7 +74,7 @@ class db():
         print(result)
 
     def createParkingLot(self, lot_shape):
-        lot_space_id = 0
+        lot_space_id = 1
         for row in lot_shape:
             # Create the row
             result = self.client.execute(
@@ -97,7 +97,9 @@ class db():
                     "lot_row_id": lot_row_id,
                     "space_id": lot_space_id if park_item != -9 else None
                 }
-                lot_space_id += 1
+                if (park_item != -9):
+                    lot_space_id += 1
+
                 row_items.append(item)
 
             self.client.execute(
