@@ -329,7 +329,6 @@ def send_data(park_structure, frame_counter, park_id, parking_line_count, total_
         for j in range(column):
             if i % 3 == 0:
                 send_park_structure[i][j] = -9
-
             else:
                 send_park_structure[i][j] = park_structure[i - count][j]
     f.write(str(send_park_structure))
