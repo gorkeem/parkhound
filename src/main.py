@@ -488,7 +488,7 @@ def display_manager(park_id, frame_rate):
 
         text = "Frame is: " + str(frame_counter) + \
             ' Total Duration: ' + str(int(total_duration))
-        print("Video Duration: " + str(total_duration))
+        #print("Video Duration: " + str(total_duration))
 
         # font
         font = cv2.FONT_HERSHEY_SIMPLEX
@@ -559,8 +559,21 @@ def display_manager(park_id, frame_rate):
         cv2.waitKey(frame_rate)
         frame_counter = frame_counter + 1
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        key = cv2.waitKey(500)
+
+        if key == 32:
+            cv2.waitKey()
+        elif key == ord('q'):
             break
+        elif key == ord('a'):
+            stop = True
+            while stop:
+                time.sleep(1)
+                key = cv2.waitKey(500)
+                if key == 32:
+                    cv2.waitKey()
+                elif key == ord('e'):
+                    stop = False
 
     cap.release()
     cv2.destroyAllWindows()
@@ -788,8 +801,12 @@ def display_manager_park2_test(park_id, frame_rate):
         cv2.waitKey(frame_rate)
         frame_counter = frame_counter + 1
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        key = cv2.waitKey(0)
+        print(key)
+        if key == ord('q'):
             break
+        elif key == ord('a'):
+            time.sleep(1000)
 
     cap.release()
     cv2.destroyAllWindows()
