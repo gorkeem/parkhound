@@ -317,46 +317,50 @@ def main_processor_image(model, frame, park_id):
 def send_data(park_structure, frame_counter, park_id, parking_line_count, total_lines, available_lines):
     row, column = park_structure.shape
     #f = open("send_data/" + str(frame_counter) + ".txt", "w")
-
+    park_dict = {"0": [1, 2, 3, 4]}
     if park_id == 1:
         park_size = 13
         send_park_structure = np.zeros([park_size, column], dtype=object)
         counter = 0
+        index = 0
         for i in range(park_size):
             for j in range(column):
                 if i % 3 == 0:
-                    send_park_structure[i][j] = 'R'
+                    send_park_structure[i][j] = (None, 'R')
                     if j == column - 1:
                         counter += 1
                 else:
                     if park_structure[i - counter][j] == 1:
-                        send_park_structure[i][j] = 'F'
+                        send_park_structure[i][j] = (index, 'F')
                     elif park_structure[i - counter][j] == 0:
-                        send_park_structure[i][j] = 'E'
+                        send_park_structure[i][j] = (index, 'E')
                     elif park_structure[i - counter][j] == -9:
-                        send_park_structure[i][j] = 'B'
+                        send_park_structure[i][j] = (None, 'B')
+                index += 1
 
     elif park_id == 2:
         park_size = 9
         send_park_structure = np.zeros([park_size, column], dtype=object)
         counter = 0
+        index = 0
         for i in range(park_size):
             for j in range(column):
                 if i % 3 == 0:
-                    send_park_structure[i][j] = 'R'
+                    send_park_structure[i][j] = (None, 'R')
                     if j == column - 1:
                         counter += 1
                 elif i == 8:
-                    send_park_structure[i][j] = 'B'
+                    send_park_structure[i][j] = (None, 'B')
                     if j == column - 1:
                         counter += 1
                 else:
                     if park_structure[i - counter][j] == 1:
-                        send_park_structure[i][j] = 'F'
+                        send_park_structure[i][j] = (index, 'F')
                     elif park_structure[i - counter][j] == 0:
-                        send_park_structure[i][j] = 'E'
+                        send_park_structure[i][j] = (index, 'E')
                     elif park_structure[i - counter][j] == -9:
-                        send_park_structure[i][j] = 'B'
+                        send_park_structure[i][j] = (None, 'B')
+                index += 1
         send_park_structure = send_park_structure.T
 
     parkhound_db.createParkingLot(send_park_structure, park_id)
