@@ -317,7 +317,6 @@ def main_processor_image(model, frame, park_id):
 def send_data(park_structure, frame_counter, park_id, parking_line_count, total_lines, available_lines):
     row, column = park_structure.shape
     #f = open("send_data/" + str(frame_counter) + ".txt", "w")
-    park_dict = {"0": [1, 2, 3, 4]}
     if park_id == 1:
         park_size = 13
         send_park_structure = np.zeros([park_size, column], dtype=object)
