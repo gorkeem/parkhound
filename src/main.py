@@ -316,7 +316,7 @@ def main_processor_image(model, frame, park_id):
 
 def send_data(park_structure, frame_counter, park_id, parking_line_count, total_lines, available_lines):
     row, column = park_structure.shape
-    f = open("send_data/" + str(frame_counter) + ".txt", "w")
+    #f = open("send_data/" + str(frame_counter) + ".txt", "w")
     
     if park_id == 1:
         park_size = 13
@@ -358,9 +358,8 @@ def send_data(park_structure, frame_counter, park_id, parking_line_count, total_
                     elif park_structure[i - counter][j] == -9:
                         send_park_structure[i][j] = 'B'
     
-    print(send_park_structure)    
-    f.write(str(send_park_structure))
-    f.close()
+    #f.write(str(send_park_structure))
+    #f.close()
 
 
 def returnBoxes(model, park_id):
