@@ -830,26 +830,53 @@ train_on_gpu = cuda.is_available()
 model, optimizer = load_checkpoint(path=checkpoint_path)
 print(train_on_gpu)
 
-application_name = "Park Hound"
-top = tk.Tk()
-top.title(application_name)
-top.geometry("500x200")
-top.iconbitmap('ico/icon.ico')
-label = tk.Label(
-    text="Welcome to ParkHound Administrator Panel ",
-    bg="blue",
-    fg="yellow",
-    width=50,
-    height=10
-)
 
-button1 = tk.Button(top, text='Investigate Parking 1',
-                    command=lambda: action(1, 300))
-button2 = tk.Button(top, text='Investigate Parking 2',
-                    command=lambda: action(2, 200))
-button3 = tk.Button(top, text='Settings', command=lambda: settings(2))
+class SampleApp(tk.Tk):
+    def __init__(self):
+        tk.Tk.__init__(self)
+        self._frame = None
+        self.switch_frame(StartPage)
+        self.title("Parkhound")
+        self.geometry("600x250")
+        self.iconbitmap('ico/icon.ico')
+        self.configure(bg='gray')
 
-button1.pack()
-button2.pack()
-button3.pack()
-top.mainloop()
+    def switch_frame(self, frame_class):
+        new_frame = frame_class(self)
+        if self._frame is not None:
+            self._frame.destroy()
+        self._frame = new_frame
+        self._frame.pack()
+
+class StartPage(tk.Frame):
+    def __init__(self, master):
+        tk.Frame.__init__(self, master)
+        tk.Label(self, text="Welcome to Parkhound Administration", font=('Helvetica', 18, "bold")).pack()
+        tk.Button(self, text="Control Park",
+                  command=lambda: master.switch_frame(PageOne)).pack()
+        tk.Button(self, text="Settings",
+                  command=lambda: master.switch_frame(PageTwo)).pack()
+
+class PageOne(tk.Frame):
+    def __init__(self, master):
+        tk.Frame.__init__(self, master)
+        tk.Frame.configure(self, bg="gray")
+        tk.Label(self, text="Select Park to Control", font=('Helvetica', 18, "bold")).pack()
+        tk.Button(self, text='Investigate Parking 1',
+                    command=lambda: action(1, 300)).pack()
+        tk.Button(self, text='Investigate Parking 2',
+                    command=lambda: action(2, 200)).pack()
+        tk.Button(self, text="Back to Menu",
+                  command=lambda: master.switch_frame(StartPage)).pack()
+
+class PageTwo(tk.Frame):
+    def __init__(self, master):
+        tk.Frame.__init__(self, master)
+        tk.Frame.configure(self, bg="gray")
+        tk.Label(self, text="Settings", font=('Helvetica', 18, "bold")).pack(side="top", fill="x", pady=5)
+        tk.Button(self, text="Back to Menu",
+                  command=lambda: master.switch_frame(StartPage)).pack()
+
+if __name__ == "__main__":
+    app = SampleApp()
+    app.mainloop()
