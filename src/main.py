@@ -13,6 +13,7 @@ from torch import cuda
 from db import db
 import warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
+import tkinter as tk
 
 # Data science tools
 # Image manipulations
@@ -211,7 +212,6 @@ def getReadLocationData(park_id):
     tree = ET.parse('data/park_structure/test' + str(park_id) + '.xml')
     root = tree.getroot()
     lines = []
-
     box_count = 0
     line_count = 0
     start_coordinates = ()
@@ -238,7 +238,7 @@ def getReadLocationData(park_id):
                     line_count = line_count + 1
                     box_count = box_count + 1
                     park_dict[str(box_count)] = [xmin, ymin, xmax, ymax]
-
+    
     coordinates = park_dict[str(box_count)]
     end_coordinates = (coordinates[0], coordinates[1])
     writer = (line_count, start_coordinates, end_coordinates)
@@ -317,18 +317,48 @@ def main_processor_image(model, frame, park_id):
 def send_data(park_structure, frame_counter, park_id, parking_line_count, total_lines, available_lines):
     row, column = park_structure.shape
     f = open("send_data/" + str(frame_counter) + ".txt", "w")
-    new_row_size = row + len(available_lines)
-    print("New row size: " + str(new_row_size))
-    send_park_structure = np.zeros([new_row_size, column])
-    count = 0
-    for i in range(new_row_size):
-        if i % 3 == 0:
-            count = count + 1
-        for j in range(column):
-            if i % 3 == 0:
-                send_park_structure[i][j] = -9
-            else:
-                send_park_structure[i][j] = park_structure[i - count][j]
+    
+    if park_id == 1:
+        park_size = 13
+        send_park_structure = np.zeros([park_size, column], dtype=object)
+        counter = 0
+        for i in range(park_size):
+            for j in range(column):
+                if i % 3 == 0:
+                    send_park_structure[i][j] = 'R'
+                    if j == column - 1:
+                        counter += 1
+                else:
+                    if park_structure[i - counter][j] == 1:
+                        send_park_structure[i][j] = 'F'
+                    elif park_structure[i - counter][j] == 0:
+                        send_park_structure[i][j] = 'E'
+                    elif park_structure[i - counter][j] == -9:
+                        send_park_structure[i][j] = 'B'
+        
+    elif park_id == 2:
+        park_size = 9
+        send_park_structure = np.zeros([park_size, column], dtype=object)
+        counter = 0
+        for i in range(park_size):
+            for j in range(column):
+                if i % 3 == 0:
+                    send_park_structure[i][j] = 'R'
+                    if j == column - 1:
+                        counter += 1
+                elif i == 8:
+                    send_park_structure[i][j] = 'B'
+                    if j == column - 1:
+                        counter += 1
+                else:
+                    if park_structure[i - counter][j] == 1:
+                        send_park_structure[i][j] = 'F'
+                    elif park_structure[i - counter][j] == 0:
+                        send_park_structure[i][j] = 'E'
+                    elif park_structure[i - counter][j] == -9:
+                        send_park_structure[i][j] = 'B'
+    
+                
     f.write(str(send_park_structure))
     f.close()
 
@@ -376,8 +406,8 @@ def apply_to_frame(frame, frame_counter, park_structure, park_id, car_count, res
         end_point = (int(coordinates[2]), int(coordinates[3]))
         frame = cv2.rectangle(frame, start_point, end_point, color, thickness)
 
-    send_data(park_structure, frame_counter, park_id,
-              parking_line_count, total_lines, available_lines)
+    send_data(park_structure, frame_counter, park_id, parking_line_count, total_lines, available_lines)
+              
 
     return frame
 
@@ -395,6 +425,7 @@ def create_structure(park_height, park_width, lines):
     car_count = []
     max_cars = 0
     parking_line_count = len(lines)
+    print("Park line count is: " + str(parking_line_count))
     total_lines = len(lines) + 1
     available_lines = []
     for i in range(total_lines + 1):
@@ -414,6 +445,359 @@ def create_structure(park_height, park_width, lines):
     return cars_lines, car_count, max_cars, parking_line_count, total_lines, available_lines
 
 
+def display_manager(park_id, frame_rate):
+
+    park_id = int(park_id)
+
+    cap = cv2.VideoCapture('data/videos/test' + str(park_id) + '.mp4')
+
+    park_dict, lines = returnBoxes(model, park_id)
+
+    overall_start = timer()
+    ret, frame = cap.read()
+    h, w, c = frame.shape
+    structure, car_count, max_cars, parking_line_count, total_lines, available_lines = create_structure(
+        h, w, lines)
+
+    length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    frame_counter = 1
+    if park_id == 10:
+        length = length - 1
+    print("Number of frames are: " + str(length))
+    print("Height: " + str(h) + " Width: " + str(w))
+    frame_time = timer()
+
+    while(cap.isOpened()):
+
+        try:
+            ret, frame = cap.read()
+        except:
+            print("Cannot read the frame")
+            break
+        
+        if frame_counter == length:
+            print("Final frame " + str(frame_counter))
+            break
+        
+        if frame.all() == None:
+            break
+
+        temp = frame.copy()
+        total_duration = timer() - overall_start
+
+        text = "Frame is: " + str(frame_counter) + ' Total Duration: ' + str(int(total_duration))
+        print("Video Duration: " + str(total_duration))
+
+        # font
+        font = cv2.FONT_HERSHEY_SIMPLEX
+
+        # org
+        org = (00, 50)
+
+        # fontScale
+        fontScale = 0.6
+
+        # Red color in BGR
+        color = (141,212,226)
+
+        # Line thickness of 2 px
+        thickness = 1
+
+        # Using cv2.putText() method
+        frame = cv2.putText(frame, text, org, font, fontScale,
+                            color, thickness, cv2.LINE_AA, False)
+
+        if (timer() - frame_time) > 10:
+            text2 = "Processed Frame is: " + str(frame_counter)
+            org2 = (00, 100)
+            frame = cv2.putText(frame, text2, org2, font, fontScale,
+                                color, thickness, cv2.LINE_AA, False)
+
+            park_structure = obtain_new_park_structure(
+                structure, car_count,  max_cars)
+            
+            temp2 = temp.copy()
+            
+            temp = cv2.cvtColor(temp, cv2.COLOR_BGR2RGB)
+            print("Video Duration so far: " + str(total_duration))
+            print("Frame Count is: " + str(frame_counter))
+            calculation_time = timer()
+
+            results = main_processor(model, temp, frame_counter, park_id)
+
+            frame = apply_to_frame(frame, frame_counter, park_structure, park_id, car_count,
+                                   results, park_dict, parking_line_count, total_lines, available_lines)
+            
+            if park_id == 1:
+                cv2.imwrite("public/1/" + str(park_id) + "processed" + ".jpg", frame)
+                cv2.imwrite("public/1/" + str(park_id) + ".jpg", temp2)
+            elif park_id == 2:
+                cv2.imwrite("public/2/" + str(park_id) + "processed" + ".jpg", frame)
+                cv2.imwrite("public/2/" + str(park_id) + ".jpg", temp2)
+
+            process = timer() - calculation_time
+            print("Processing Time: " + str(process))
+
+            cv2.imshow('Frame', frame)
+            cv2.waitKey(3000)
+            frame_time = timer()
+            #time.sleep(process)
+
+        # cv2.waitKey(1200)
+
+        if frame_counter == length:
+            print("Final frame " + str(frame_counter))
+            break
+        else:
+            print("Current frame is: " + str(frame_counter))
+            cv2.imshow('Frame', frame)
+
+        #cv2.imwrite("data/park_moment" + str(park_id) + ".jpg", frame)
+        #time.sleep(2)
+        cv2.waitKey(frame_rate)
+        frame_counter = frame_counter + 1
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+    
+    return park_structure
+
+def display_manager_server(park_id, frame_rate):
+
+    park_id = int(park_id)
+
+    cap = cv2.VideoCapture('data/videos/test' + str(park_id) + '.mp4')
+
+    park_dict, lines = returnBoxes(model, park_id)
+
+    overall_start = timer()
+    ret, frame = cap.read()
+    h, w, c = frame.shape
+    structure, car_count, max_cars, parking_line_count, total_lines, available_lines = create_structure(
+        h, w, lines)
+
+    length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    frame_counter = 1
+    if park_id == 10:
+        length = length - 1
+    print("Number of frames are: " + str(length))
+    print("Height: " + str(h) + " Width: " + str(w))
+    frame_time = timer()
+
+    while(cap.isOpened()):
+
+        try:
+            ret, frame = cap.read()
+        except:
+            print("Cannot read the frame")
+            break
+
+        if frame.all() == None:
+            break
+
+        temp = frame.copy()
+        total_duration = timer() - overall_start
+
+        text = "Frame is: " + str(frame_counter) + "\n Total Duration: " + str(total_duration)
+
+        # font
+        font = cv2.FONT_HERSHEY_SIMPLEX
+
+        # org
+        org = (00, 50)
+
+        # fontScale
+        fontScale = 0.6
+
+        # Red color in BGR
+        color = (134, 113, 40)
+        
+        print("Video Duration: " + str(total_duration))
+
+        # Line thickness of 2 px
+        thickness = 1
+
+        # Using cv2.putText() method
+        frame = cv2.putText(frame, text, org, font, fontScale,
+                            color, thickness, cv2.LINE_AA, False)
+
+        if (timer() - frame_time) > 10:
+            text2 = "Processed Frame is: " + str(frame_counter)
+            org2 = (00, 100)
+            frame = cv2.putText(frame, text2, org2, font, fontScale,
+                                color, thickness, cv2.LINE_AA, False)
+
+            park_structure = obtain_new_park_structure(
+                structure, car_count,  max_cars)
+            temp = cv2.cvtColor(temp, cv2.COLOR_BGR2RGB)
+            print("Video Duration so far: " + str(total_duration))
+            print("Frame Count is: " + str(frame_counter))
+            calculation_time = timer()
+
+            results = main_processor(model, temp, frame_counter, park_id)
+
+            frame = apply_to_frame(frame, frame_counter, park_structure, park_id, car_count,
+                                   results, park_dict, parking_line_count, total_lines, available_lines)
+
+            cv2.imwrite("processed/" + str(frame_counter) + ".jpg", frame)
+
+            process = timer() - calculation_time
+            print("Processing Time: " + str(process))
+
+            cv2.imshow('Frame', frame)
+            cv2.waitKey(3000)
+            frame_time = timer()
+
+        # cv2.waitKey(1200)
+
+        if frame_counter == length:
+            print("Final frame " + str(frame_counter))
+            break
+        else:
+            print("Current frame is: " + str(frame_counter))
+            cv2.imshow('Frame', frame)
+
+        #cv2.imwrite("data/park_moment" + str(park_id) + ".jpg", frame)
+        #time.sleep(2)
+        cv2.waitKey(frame_rate)
+        frame_counter = frame_counter + 1
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+    return park_structure
+
+def action(number, frame_rate):
+    display_manager(number, frame_rate)
+    
+def settings(number):
+    a = 10
+
+
+def display_manager_park2_test(park_id, frame_rate):
+
+    park_id = int(park_id)
+
+    cap = cv2.VideoCapture('data/videos/test' + str(park_id) + '.mp4')
+
+    park_dict, lines = returnBoxes(model, park_id)
+
+    overall_start = timer()
+    ret, frame = cap.read()
+    h, w, c = frame.shape
+    structure, car_count, max_cars, parking_line_count, total_lines, available_lines = create_structure(
+        h, w, lines)
+    
+    
+
+    length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    frame_counter = 1
+    if park_id == 10:
+        length = length - 1
+    print("Number of frames are: " + str(length))
+    print("Height: " + str(h) + " Width: " + str(w))
+    frame_time = timer()
+    
+
+    while(cap.isOpened()):
+
+        try:
+            ret, frame = cap.read()
+        except:
+            print("Cannot read the frame")
+            break
+
+        if frame.all() == None:
+            break
+
+        temp = frame.copy()
+        total_duration = timer() - overall_start
+
+        text = "Frame is: " + str(frame_counter) + ' Total Duration: ' + str(int(total_duration))
+        print("Video Duration: " + str(total_duration))
+
+        # font
+        font = cv2.FONT_HERSHEY_SIMPLEX
+
+        # org
+        org = (00, 50)
+
+        # fontScale
+        fontScale = 0.6
+
+        # Red color in BGR
+        color = (141,212,226)
+
+        # Line thickness of 2 px
+        thickness = 1
+
+        # Using cv2.putText() method
+        frame = cv2.putText(frame, text, org, font, fontScale,
+                            color, thickness, cv2.LINE_AA, False)
+        
+        if (timer() - frame_time) > 10:
+            text2 = "Processed Frame is: " + str(frame_counter)
+            org2 = (00, 100)
+            frame = cv2.putText(frame, text2, org2, font, fontScale,
+                                color, thickness, cv2.LINE_AA, False)
+
+            park_structure = obtain_new_park_structure(
+                structure, car_count,  max_cars)
+            temp = cv2.cvtColor(temp, cv2.COLOR_BGR2RGB)
+            print("Video Duration so far: " + str(total_duration))
+            print("Frame Count is: " + str(frame_counter))
+            calculation_time = timer()
+
+            results = main_processor(model, temp, frame_counter, park_id)
+            
+            frame = apply_to_frame(frame, frame_counter, park_structure, park_id, car_count,
+                                   results, park_dict, parking_line_count, total_lines, available_lines)
+            
+            
+            cv2.imwrite("processed/" + str(frame_counter) + ".jpg", frame)
+
+            process = timer() - calculation_time
+            print("Processing Time: " + str(process))
+
+            cv2.imshow('Frame', frame)
+            cv2.waitKey(3000)
+            frame_time = timer()
+            #time.sleep(process)
+        
+
+        # cv2.waitKey(1200)
+
+        if frame_counter == length:
+            print("Final frame " + str(frame_counter))
+            break
+        else:
+            print("Current frame is: " + str(frame_counter))
+            cv2.imshow('Frame', frame)
+
+        #cv2.imwrite("data/park_moment" + str(park_id) + ".jpg", frame)
+        #time.sleep(2)
+        cv2.waitKey(frame_rate)
+        frame_counter = frame_counter + 1
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+    
+    park_structure = []
+    
+    return park_structure
+
+
 
 '''Main method'''
 
@@ -423,14 +807,24 @@ train_on_gpu = cuda.is_available()
 model, optimizer = load_checkpoint(path=checkpoint_path)
 print(train_on_gpu)
 
-'''
-if __name__ == '__main__':
-    process = []
-    #for i in range(1, 2):
-    process.append(Process(target=display_manager, args=(str(8))))
-    #process[i - 1].start()
-        #process[i - 1].join()
+application_name = "Park Hound"
+top = tk.Tk()
+top.title(application_name)
+top.geometry("500x200")
+top.iconbitmap('ico/icon.ico')
+label = tk.Label(
+    text="Welcome to ParkHound Administrator Panel ",
+    bg="blue",
+    fg="yellow",
+    width=50,
+    height=10
+)
 
-'''
-park_structure = display_manager(10)
-# display_image(11)
+button1 = tk.Button(top, text='Investigate Parking 1', command= lambda: action(1, 300))
+button2 = tk.Button(top, text='Investigate Parking 2', command= lambda: action(2, 200))
+button3 = tk.Button(top, text='Settings', command= lambda: settings(2))
+
+button1.pack()
+button2.pack()
+button3.pack()
+top.mainloop()

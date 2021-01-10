@@ -88,11 +88,11 @@ class db():
                     "is_driver_disabled_parking": False,
                     "is_disabled": False,
                     "is_occupied": park_item == 0,
-                    "is_space": park_item != -9,
+                    "is_space": park_item != 'B',
                     "is_road": False,
                     "is_entry": False,
                     "is_exit": False,
-                    "is_blank": park_item == -9,
+                    "is_blank": park_item == 'B',
                     "rotation": 0,
                     "lot_row_id": lot_row_id,
                     "space_id": lot_space_id if park_item != -9 else None
