@@ -415,10 +415,6 @@ def create_structure(park_height, park_width, lines):
 
 
 
-
-
-
-
 '''Main method'''
 
 checkpoint_path = 'model/resnet50-transfer-4.pth'
