@@ -359,6 +359,7 @@ def send_data(park_structure, frame_counter, park_id, parking_line_count, total_
                         send_park_structure[i][j] = 'B'
         send_park_structure = send_park_structure.T
 
+    send_park_structure = send_park_structure[::-1]
     parkhound_db.createParkingLot(send_park_structure, park_id)
     # f.write(str(send_park_structure))
     # f.close()
