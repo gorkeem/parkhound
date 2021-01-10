@@ -321,7 +321,7 @@ def send_data(park_structure, frame_counter, park_id, parking_line_count, total_
         park_size = 13
         send_park_structure = np.zeros([park_size, column], dtype=object)
         counter = 0
-        index = 0
+        index = 1
         for i in range(park_size):
             for j in range(column):
                 if i % 3 == 0:
@@ -331,11 +331,12 @@ def send_data(park_structure, frame_counter, park_id, parking_line_count, total_
                 else:
                     if park_structure[i - counter][j] == 1:
                         send_park_structure[i][j] = (index, 'F')
+                        index += 1
                     elif park_structure[i - counter][j] == 0:
                         send_park_structure[i][j] = (index, 'E')
+                        index += 1
                     elif park_structure[i - counter][j] == -9:
                         send_park_structure[i][j] = (None, 'B')
-                index += 1
 
     elif park_id == 2:
         park_size = 9
@@ -355,11 +356,12 @@ def send_data(park_structure, frame_counter, park_id, parking_line_count, total_
                 else:
                     if park_structure[i - counter][j] == 1:
                         send_park_structure[i][j] = (index, 'F')
+                        index += 1
                     elif park_structure[i - counter][j] == 0:
                         send_park_structure[i][j] = (index, 'E')
+                        index += 1
                     elif park_structure[i - counter][j] == -9:
                         send_park_structure[i][j] = (None, 'B')
-                index += 1
         send_park_structure = send_park_structure.T
 
     send_park_structure = send_park_structure[::-1]

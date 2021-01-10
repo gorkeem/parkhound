@@ -69,7 +69,6 @@ class db():
             else:
                 return 0
 
-        lot_space_id = 1
         processed_space = []
         for row in lot_shape:
             # Create the row
@@ -79,7 +78,7 @@ class db():
             row_items = []
 
             # Fill the row
-            for park_item in row:
+            for space_id, park_item in row:
                 item = {
                     "is_driver_disabled_parking": False,
                     "is_disabled": False,
@@ -91,10 +90,8 @@ class db():
                     "is_blank": park_item == 'B',
                     "rotation":  getRotation(park_item, lot_id),
                     "lot_row_id": lot_row_id,
-                    "space_id": lot_space_id if (park_item == "E" or park_item == "F") else None
+                    "space_id": space_id
                 }
-                if (park_item == "E" or park_item == "F"):
-                    lot_space_id += 1
 
                 row_items.append(item)
             processed_space.append(row_items)
