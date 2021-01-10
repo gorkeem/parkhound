@@ -358,7 +358,7 @@ def send_data(park_structure, frame_counter, park_id, parking_line_count, total_
                     elif park_structure[i - counter][j] == -9:
                         send_park_structure[i][j] = 'B'
     
-                
+    print(send_park_structure)    
     f.write(str(send_park_structure))
     f.close()
 
@@ -368,7 +368,7 @@ def returnBoxes(model, park_id):
     box = []
     for i in range(1, len(park_dict)):
         box.append(park_dict[str(i)])
-    return park_dict, lines
+    return park_dict, box_count, lines
 
 
 def apply_to_frame(frame, frame_counter, park_structure, park_id, car_count, results, park_dict, parking_line_count, total_lines, available_lines):
@@ -451,20 +451,19 @@ def display_manager(park_id, frame_rate):
 
     cap = cv2.VideoCapture('data/videos/test' + str(park_id) + '.mp4')
 
-    park_dict, lines = returnBoxes(model, park_id)
-
+    park_dict, box_count, lines = returnBoxes(model, park_id)
+    
     overall_start = timer()
     ret, frame = cap.read()
     h, w, c = frame.shape
     structure, car_count, max_cars, parking_line_count, total_lines, available_lines = create_structure(
         h, w, lines)
 
-    length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    total_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
     frame_counter = 1
-    if park_id == 10:
-        length = length - 1
-    print("Number of frames are: " + str(length))
+        
+    print("Number of frames are: " + str(total_frame))
     print("Height: " + str(h) + " Width: " + str(w))
     frame_time = timer()
 
@@ -476,7 +475,7 @@ def display_manager(park_id, frame_rate):
             print("Cannot read the frame")
             break
         
-        if frame_counter == length:
+        if frame_counter == total_frame:
             print("Final frame " + str(frame_counter))
             break
         
@@ -546,7 +545,7 @@ def display_manager(park_id, frame_rate):
 
         # cv2.waitKey(1200)
 
-        if frame_counter == length:
+        if frame_counter == total_frame:
             print("Final frame " + str(frame_counter))
             break
         else:
