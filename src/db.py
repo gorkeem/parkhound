@@ -59,7 +59,7 @@ class db():
     def createParkingLot(self, lot_shape, lot_id):
         # Clear lot
         self.client.execute(deleteRowsMutation,
-                            variable_values={"id": lot_id + 2})
+                            variable_values={"id": lot_id + 1})
 
         def getRotation(park_item, lot_id):
             if (park_item == "R" and lot_id == 1):
@@ -69,16 +69,17 @@ class db():
             else:
                 return 0
 
+        lot_space_id = 1
         processed_space = []
         for row in lot_shape:
             # Create the row
             result = self.client.execute(
-                insertLotRowMutation, variable_values={"id": lot_id + 2})
+                insertLotRowMutation, variable_values={"id": lot_id + 1})
             lot_row_id = result["insert_lot_row_one"]["id"]
             row_items = []
 
             # Fill the row
-            for space_id, park_item in row:
+            for _, park_item in row:
                 item = {
                     "is_driver_disabled_parking": False,
                     "is_disabled": False,
@@ -90,8 +91,10 @@ class db():
                     "is_blank": park_item == 'B',
                     "rotation":  getRotation(park_item, lot_id),
                     "lot_row_id": lot_row_id,
-                    "space_id": space_id
+                    "space_id": lot_space_id if (park_item == "E" or park_item == "F") else None
                 }
+                if (park_item == "E" or park_item == "F"):
+                    lot_space_id += 1
 
                 row_items.append(item)
             processed_space.append(row_items)

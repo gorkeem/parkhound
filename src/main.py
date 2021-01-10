@@ -537,11 +537,11 @@ def display_manager(park_id, frame_rate):
                                    results, park_dict, parking_line_count, total_lines, available_lines)
 
             if park_id == 1:
+                cv2.imwrite("../build/2/" + "processed" + ".jpg", frame)
+                cv2.imwrite("../build/2/" + "latest" + ".jpg", temp2)
+            elif park_id == 2:
                 cv2.imwrite("../build/3/" + "processed" + ".jpg", frame)
                 cv2.imwrite("../build/3/" + "latest" + ".jpg", temp2)
-            elif park_id == 2:
-                cv2.imwrite("../build/4/" + "processed" + ".jpg", frame)
-                cv2.imwrite("../build/4/" + "latest" + ".jpg", temp2)
 
             process = timer() - calculation_time
             print("Processing Time: " + str(process))
