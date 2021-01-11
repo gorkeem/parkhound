@@ -839,7 +839,6 @@ class SampleApp(tk.Tk):
         self.title("Parkhound")
         self.geometry("600x250")
         self.iconbitmap('ico/icon.ico')
-        self.configure(bg='gray')
 
     def switch_frame(self, frame_class):
         new_frame = frame_class(self)
