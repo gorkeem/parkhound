@@ -859,11 +859,11 @@ class StartPage(tk.Frame):
 class PageOne(tk.Frame):
     def __init__(self, master):
         tk.Frame.__init__(self, master)
-        tk.Frame.configure(self, bg="gray")
+        tk.Frame.configure(self)
         tk.Label(self, text="Select Park to Control", font=('Helvetica', 18, "bold")).pack()
-        tk.Button(self, text='Investigate Parking 1',
+        tk.Button(self, text='Investigate Atatürk Parkı',
                     command=lambda: action(1, 300)).pack()
-        tk.Button(self, text='Investigate Parking 2',
+        tk.Button(self, text='Investigate 100.yıl Parkı',
                     command=lambda: action(2, 200)).pack()
         tk.Button(self, text="Back to Menu",
                   command=lambda: master.switch_frame(StartPage)).pack()
