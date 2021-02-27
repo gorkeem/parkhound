@@ -1,0 +1,4 @@
+docker-data
+.env
+node_modules
+*.lock

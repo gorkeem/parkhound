@@ -1,0 +1,8 @@
+query NearbySpaces($userLocation: NearbySpacesInput!) {
+  nearby_spaces(arg1: $userLocation) {
+    distance
+    parking_lot {
+      ...ParkingLotCardInfo
+    }
+  }
+}

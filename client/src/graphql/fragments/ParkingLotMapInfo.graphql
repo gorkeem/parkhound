@@ -1,0 +1,12 @@
+fragment ParkingLotMapInfo on parking_lot {
+  id
+  location {
+    id
+    latitude
+    longitude
+  }
+  vacant_space {
+    vacant_count
+    capacity
+  }
+}

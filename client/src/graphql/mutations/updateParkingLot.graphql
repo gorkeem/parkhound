@@ -1,0 +1,6 @@
+mutation UpdateParkingLot($id: Int!, $_set: parking_lot_set_input) {
+  update_parking_lot_by_pk(pk_columns: { id: $id }, _set: $_set) {
+    id
+    is_disabled
+  }
+}

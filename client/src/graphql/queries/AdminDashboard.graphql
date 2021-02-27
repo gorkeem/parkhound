@@ -1,0 +1,25 @@
+query AdminDashboard($id: Int!) {
+  user_by_pk(id: $id) {
+    user_institutions(where: { is_admin: { _eq: true } }) {
+      institution {
+        name
+        user_institutions_aggregate {
+          aggregate {
+            count
+          }
+        }
+        parking_lots {
+          name
+          vacant_space {
+            vacant_count
+          }
+        }
+        parking_lots_aggregate {
+          aggregate {
+            count
+          }
+        }
+      }
+    }
+  }
+}

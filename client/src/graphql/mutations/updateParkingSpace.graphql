@@ -1,0 +1,5 @@
+mutation UpdateParkingSpace($id: Int!, $_set: parking_space_set_input) {
+  update_parking_space_by_pk(pk_columns: { id: $id }, _set: $_set) {
+    ...ParkingSpaceInfo
+  }
+}

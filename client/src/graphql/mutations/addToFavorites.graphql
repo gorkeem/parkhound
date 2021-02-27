@@ -1,0 +1,15 @@
+mutation AddToFavorites($uid: Int!, $parking_lot_id: Int!) {
+  insert_favorites_one(
+    object: { user_id: $uid, parking_lot_id: $parking_lot_id }
+  ) {
+    user_id
+    parking_lot_id
+    user {
+      favorites {
+        parking_lot {
+          id
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+query PastLotOccupancy($id: Int!) {
+  past_lot_occupancy(
+    where: { parking_lot_id: { _eq: $id } }
+    order_by: { updated_at: asc }
+  ) {
+    occupied
+    updated_at
+  }
+}

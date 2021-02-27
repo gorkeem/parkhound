@@ -1,0 +1,20 @@
+query ParkingLotDetailsByID($id: Int!) {
+  parking_lot_by_pk(id: $id) {
+    id
+    name
+    is_disabled
+    vacant_space {
+      vacant_count
+    }
+    location {
+      latitude
+      longitude
+    }
+    lot_rows {
+      id
+      parking_spaces(order_by: { id: asc }) {
+        ...ParkingSpaceInfo
+      }
+    }
+  }
+}

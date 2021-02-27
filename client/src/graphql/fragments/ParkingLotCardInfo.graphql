@@ -1,0 +1,8 @@
+fragment ParkingLotCardInfo on parking_lot {
+  id
+  name
+  lot_image
+  vacant_space {
+    vacant_count
+  }
+}

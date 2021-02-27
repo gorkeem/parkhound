@@ -1,0 +1,5 @@
+query ParkingLots {
+  parking_lot {
+    ...ParkingLotMapInfo
+  }
+}

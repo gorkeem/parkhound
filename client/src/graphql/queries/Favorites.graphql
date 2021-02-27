@@ -1,0 +1,9 @@
+query Favorites($id: Int!) {
+  user_by_pk(id: $id) {
+    favorites {
+      parking_lot {
+        id
+      }
+    }
+  }
+}

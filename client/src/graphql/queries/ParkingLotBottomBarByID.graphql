@@ -1,0 +1,16 @@
+query ParkingLotBottomBarByID($id: Int!) {
+  parking_lot_by_pk(id: $id) {
+    id
+    name
+    location {
+      id
+      address
+      latitude
+      longitude
+    }
+    vacant_space {
+      vacant_count
+      capacity
+    }
+  }
+}

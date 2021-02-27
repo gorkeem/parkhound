@@ -1,0 +1,12 @@
+fragment ParkingSpaceInfo on parking_space {
+  id
+  space_id
+  is_road
+  is_occupied
+  is_entry
+  is_exit
+  is_blank
+  is_disabled
+  is_driver_disabled_parking
+  rotation
+}

@@ -1,0 +1,12 @@
+query ParkingLotList($uid: Int!, $userLocation: NearbySpacesInput!) {
+  nearby_spaces(arg1: $userLocation) {
+    distance
+    parking_lot {
+      favorites(where: { user_id: { _eq: $uid } }) {
+        user_id
+      }
+      id
+      ...ParkingLotCardInfo
+    }
+  }
+}

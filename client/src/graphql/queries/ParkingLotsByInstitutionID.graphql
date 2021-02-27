@@ -1,0 +1,7 @@
+query ParkingLotsByInstitutionID($id: Int!) {
+  institution_by_pk(id: $id) {
+    parking_lots(order_by: { id: asc }) {
+      ...ParkingLotCardInfo
+    }
+  }
+}
